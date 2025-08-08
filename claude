@@ -1,4 +1,4 @@
--- Ultimate Premium UI Library v2.1 - Fully Fixed Edition
+-- Ultimate Premium UI Library v2.2 - Fixed Edition
 local Library = {}
 Library.__index = Library
 
@@ -13,7 +13,7 @@ local CoreGui = game:GetService("CoreGui")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 
--- Enhanced Themes with complete color sets
+-- Enhanced Themes
 local Themes = {
     Dark = {
         Name = "Dark",
@@ -91,6 +91,7 @@ local Themes = {
 
 -- Store all UI elements that need theme updates
 local ThemeElements = {}
+local AccentElements = {}
 
 -- Utility Functions
 local function Create(class, properties)
@@ -151,6 +152,11 @@ local function RegisterThemeElement(element, properties)
     table.insert(ThemeElements, {element = element, properties = properties})
 end
 
+-- Register accent element
+local function RegisterAccentElement(element, callback)
+    table.insert(AccentElements, {element = element, callback = callback})
+end
+
 -- Custom ScrollBar
 local function CreateScrollBar(parent, theme)
     local ScrollBar = Create("Frame", {
@@ -188,7 +194,7 @@ local function CreateScrollBar(parent, theme)
     return ScrollBar, ScrollThumb
 end
 
--- Notification System
+-- Enhanced Notification System
 local NotificationHolder = nil
 local Notifications = {}
 
@@ -215,7 +221,7 @@ end
 function Library:Notify(config)
     CreateNotificationHolder()
     
-    local currentTheme = self.Theme or Themes.Dark
+    local currentTheme = self and self.Theme or Themes.Dark
     
     local Notification = Create("Frame", {
         Parent = NotificationHolder,
@@ -226,44 +232,71 @@ function Library:Notify(config)
     })
     
     Create("UICorner", {
-        CornerRadius = UDim.new(0, 10),
+        CornerRadius = UDim.new(0, 12),
         Parent = Notification
     })
     
-    -- Gradient
-    Create("UIGradient", {
+    -- Shadow
+    local Shadow = Create("ImageLabel", {
         Parent = Notification,
-        Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(240, 240, 240))
-        },
-        Rotation = 90
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, -10, 0, -10),
+        Size = UDim2.new(1, 20, 1, 20),
+        Image = "rbxassetid://5554236805",
+        ImageColor3 = Color3.fromRGB(0, 0, 0),
+        ImageTransparency = 0.6,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(23, 23, 277, 277),
+        ZIndex = -1
     })
     
-    -- Accent bar
-    local AccentBar = Create("Frame", {
+    -- Icon background
+    local IconBG = Create("Frame", {
         Parent = Notification,
         BackgroundColor3 = config.Color or currentTheme.Accent,
-        Size = UDim2.new(0, 4, 1, 0)
+        Size = UDim2.new(0, 50, 1, 0)
+    })
+    
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 12),
+        Parent = IconBG
+    })
+    
+    -- Icon
+    local Icon = Create("TextLabel", {
+        Parent = IconBG,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Icon or "!",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 24
+    })
+    
+    -- Content container
+    local Content = Create("Frame", {
+        Parent = Notification,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 60, 0, 10),
+        Size = UDim2.new(1, -70, 1, -20)
     })
     
     local Title = Create("TextLabel", {
-        Parent = Notification,
+        Parent = Content,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 10),
-        Size = UDim2.new(1, -20, 0, 20),
+        Size = UDim2.new(1, 0, 0, 20),
         Font = Enum.Font.GothamBold,
         Text = config.Title or "Notification",
         TextColor3 = currentTheme.Text,
-        TextSize = 14,
+        TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left
     })
     
     local Message = Create("TextLabel", {
-        Parent = Notification,
+        Parent = Content,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 30),
-        Size = UDim2.new(1, -20, 0, 25),
+        Position = UDim2.new(0, 0, 0, 25),
+        Size = UDim2.new(1, 0, 0, 25),
         Font = Enum.Font.Gotham,
         Text = config.Text or "",
         TextColor3 = currentTheme.TextDark,
@@ -272,18 +305,39 @@ function Library:Notify(config)
         TextWrapped = true
     })
     
-    -- Progress bar
-    local ProgressBar = Create("Frame", {
+    -- Progress bar container
+    local ProgressContainer = Create("Frame", {
         Parent = Notification,
         BackgroundColor3 = currentTheme.Border,
-        Position = UDim2.new(0, 0, 1, -4),
-        Size = UDim2.new(1, 0, 0, 4)
+        BackgroundTransparency = 0.7,
+        Position = UDim2.new(0, 0, 1, -5),
+        Size = UDim2.new(1, 0, 0, 5)
     })
     
     local ProgressFill = Create("Frame", {
-        Parent = ProgressBar,
+        Parent = ProgressContainer,
         BackgroundColor3 = config.Color or currentTheme.Accent,
-        Size = UDim2.new(1, 0, 1, 0)
+        Size = UDim2.new(1, 0, 1, 0),
+        BorderSizePixel = 0
+    })
+    
+    -- Glow effect
+    local Glow = Create("Frame", {
+        Parent = ProgressFill,
+        BackgroundColor3 = config.Color or currentTheme.Accent,
+        BackgroundTransparency = 0.5,
+        Size = UDim2.new(1, 0, 2, 0),
+        Position = UDim2.new(0, 0, -0.5, 0),
+        BorderSizePixel = 0
+    })
+    
+    Create("UIGradient", {
+        Parent = Glow,
+        Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 1)
+        }
     })
     
     -- Animate in
@@ -319,8 +373,9 @@ function Library:CreateWindow(config)
         BackgroundBlur = config.BackgroundBlur ~= false
     }
     
-    -- Clear theme elements for new window
+    -- Clear elements for new window
     ThemeElements = {}
+    AccentElements = {}
     
     -- Create GUI
     self.ScreenGui = Create("ScreenGui", {
@@ -342,7 +397,7 @@ function Library:CreateWindow(config)
         })
     end
     
-    -- Main Frame
+    -- Main Frame (instant appearance)
     self.MainFrame = Create("Frame", {
         Name = "Main",
         Parent = self.ScreenGui,
@@ -679,8 +734,6 @@ function Window:CreateTab(name, icon)
         Parent = Tab.Indicator
     })
     
-    Tab.IndicatorElement = Tab.Indicator -- Store for theme updates
-    
     -- Tab Content with custom scrollbar
     Tab.Content = Create("ScrollingFrame", {
         Name = name,
@@ -867,7 +920,10 @@ function Window:CreateTab(name, icon)
                 Parent = Button
             })
             
-            Button.AccentElement = Button -- Store for accent updates
+            -- Register for accent updates
+            RegisterAccentElement(Button, function(color)
+                Button.BackgroundColor3 = color
+            end)
             
             Button.MouseButton1Click:Connect(function()
                 if config.Callback then
@@ -964,7 +1020,6 @@ function Window:CreateTab(name, icon)
             })
             
             RegisterThemeElement(Toggle.Switch, {BackgroundColor3 = "Border"})
-            Toggle.SwitchAccent = Toggle.Switch -- Store for accent updates
             
             Toggle.Knob = Create("Frame", {
                 Name = "Knob",
@@ -1000,6 +1055,13 @@ function Window:CreateTab(name, icon)
                     config.Callback(Toggle.Value)
                 end
             end
+            
+            -- Register for accent updates
+            RegisterAccentElement(Toggle, function(color)
+                if Toggle.Value then
+                    Toggle.Switch.BackgroundColor3 = color
+                end
+            end)
             
             Toggle.Container.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -1075,7 +1137,10 @@ function Window:CreateTab(name, icon)
                 TextXAlignment = Enum.TextXAlignment.Right
             })
             
-            Slider.ValueAccent = Slider.ValueLabel -- Store for accent updates
+            -- Register for accent updates
+            RegisterAccentElement(Slider.ValueLabel, function(color)
+                Slider.ValueLabel.TextColor3 = color
+            end)
             
             Slider.SliderBG = Create("Frame", {
                 Name = "SliderBG",
@@ -1104,7 +1169,10 @@ function Window:CreateTab(name, icon)
                 Parent = Slider.Fill
             })
             
-            Slider.FillAccent = Slider.Fill -- Store for accent updates
+            -- Register for accent updates
+            RegisterAccentElement(Slider.Fill, function(color)
+                Slider.Fill.BackgroundColor3 = color
+            end)
             
             Slider.Knob = Create("Frame", {
                 Name = "Knob",
@@ -2119,6 +2187,19 @@ function Window:SelectTab(tab)
     if tab.Icon then
         Tween(tab.Icon, {TextColor3 = self.AccentColor}, 0.2)
     end
+    
+    -- Register tab indicator for accent updates
+    RegisterAccentElement(tab.Indicator, function(color)
+        tab.Indicator.BackgroundColor3 = color
+    end)
+    RegisterAccentElement(tab.Label, function(color)
+        tab.Label.TextColor3 = color
+    end)
+    if tab.Icon then
+        RegisterAccentElement(tab.Icon, function(color)
+            tab.Icon.TextColor3 = color
+        end)
+    end
 end
 
 function Window:SetTheme(themeName)
@@ -2144,36 +2225,9 @@ end
 
 function Window:UpdateAccentElements()
     -- Update all elements that use accent color
-    for _, tab in ipairs(self.Tabs) do
-        if self.CurrentTab == tab then
-            tab.Indicator.BackgroundColor3 = self.AccentColor
-            tab.Label.TextColor3 = self.AccentColor
-            if tab.Icon then
-                tab.Icon.TextColor3 = self.AccentColor
-            end
-        end
-        
-        for _, section in ipairs(tab.Sections) do
-            -- Update buttons
-            for _, child in pairs(section.Content:GetChildren()) do
-                if child.Name and child.AccentElement then
-                    child.BackgroundColor3 = self.AccentColor
-                end
-                
-                -- Update toggles
-                if child.Name and child:FindFirstChild("Switch") and child.SwitchAccent then
-                    local toggle = child
-                    if toggle.Value then
-                        toggle.Switch.BackgroundColor3 = self.AccentColor
-                    end
-                end
-                
-                -- Update sliders
-                if child.Name and child.FillAccent then
-                    child.Fill.BackgroundColor3 = self.AccentColor
-                    child.ValueLabel.TextColor3 = self.AccentColor
-                end
-            end
+    for _, element in ipairs(AccentElements) do
+        if element.element and element.element.Parent and element.callback then
+            element.callback(self.AccentColor)
         end
     end
 end
@@ -2225,14 +2279,8 @@ function Window:Destroy()
 end
 
 function Window:Init()
-    -- Opening animation
-    self.MainFrame.Size = UDim2.new(0, 0, 0, 0)
-    self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    
-    Tween(self.MainFrame, {
-        Size = UDim2.new(0, 700, 0, 500),
-        Position = UDim2.new(0.5, -350, 0.5, -250)
-    }, 0.5, Enum.EasingStyle.Back)
+    -- Instant loading - no animation
+    return
 end
 
 return Library
