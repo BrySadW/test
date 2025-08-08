@@ -1,4 +1,4 @@
--- Ultimate Premium UI Library v2.2 - Fixed Edition
+-- Ultimate Premium UI Library v2.3 - All Issues Fixed
 local Library = {}
 Library.__index = Library
 
@@ -31,7 +31,8 @@ local Themes = {
         Warning = Color3.fromRGB(255, 200, 100),
         Error = Color3.fromRGB(255, 100, 100),
         ScrollBar = Color3.fromRGB(80, 80, 90),
-        Note = Color3.fromRGB(150, 130, 255)
+        Note = Color3.fromRGB(150, 130, 255),
+        SliderFill = Color3.fromRGB(130, 110, 255)
     },
     Light = {
         Name = "Light",
@@ -49,7 +50,8 @@ local Themes = {
         Warning = Color3.fromRGB(200, 150, 80),
         Error = Color3.fromRGB(200, 80, 80),
         ScrollBar = Color3.fromRGB(200, 200, 210),
-        Note = Color3.fromRGB(120, 140, 255)
+        Note = Color3.fromRGB(120, 140, 255),
+        SliderFill = Color3.fromRGB(100, 120, 255)
     },
     Midnight = {
         Name = "Midnight",
@@ -67,7 +69,8 @@ local Themes = {
         Warning = Color3.fromRGB(200, 150, 100),
         Error = Color3.fromRGB(200, 100, 150),
         ScrollBar = Color3.fromRGB(60, 60, 90),
-        Note = Color3.fromRGB(120, 120, 255)
+        Note = Color3.fromRGB(120, 120, 255),
+        SliderFill = Color3.fromRGB(100, 100, 255)
     },
     Rose = {
         Name = "Rose",
@@ -85,7 +88,8 @@ local Themes = {
         Warning = Color3.fromRGB(255, 200, 150),
         Error = Color3.fromRGB(255, 150, 150),
         ScrollBar = Color3.fromRGB(100, 60, 70),
-        Note = Color3.fromRGB(255, 130, 180)
+        Note = Color3.fromRGB(255, 130, 180),
+        SliderFill = Color3.fromRGB(255, 110, 160)
     }
 }
 
@@ -163,10 +167,10 @@ local function CreateScrollBar(parent, theme)
         Name = "ScrollBar",
         Parent = parent,
         BackgroundColor3 = theme.ScrollBar,
-        BackgroundTransparency = 0.7,
-        Size = UDim2.new(0, 4, 1, 0),
-        Position = UDim2.new(1, -6, 0, 0),
-        Visible = false
+        BackgroundTransparency = 0.3,
+        Size = UDim2.new(0, 6, 1, 0),
+        Position = UDim2.new(1, -8, 0, 0),
+        Visible = true
     })
     
     Create("UICorner", {
@@ -178,7 +182,7 @@ local function CreateScrollBar(parent, theme)
         Name = "Thumb",
         Parent = ScrollBar,
         BackgroundColor3 = theme.Accent,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0,
         Size = UDim2.new(1, 0, 0.3, 0),
         Position = UDim2.new(0, 0, 0, 0)
     })
@@ -190,6 +194,59 @@ local function CreateScrollBar(parent, theme)
     
     RegisterThemeElement(ScrollBar, {BackgroundColor3 = "ScrollBar"})
     RegisterThemeElement(ScrollThumb, {BackgroundColor3 = "Accent"})
+    
+    -- Scrollbar functionality
+    local function UpdateScrollbar()
+        local canvasSize = parent.CanvasSize.Y.Offset
+        local viewportSize = parent.AbsoluteSize.Y
+        
+        if canvasSize > viewportSize then
+            ScrollBar.Visible = true
+            local thumbSize = (viewportSize / canvasSize) * viewportSize
+            ScrollThumb.Size = UDim2.new(1, 0, 0, math.max(thumbSize, 20))
+            
+            local scrollPercent = parent.CanvasPosition.Y / (canvasSize - viewportSize)
+            local thumbPosition = scrollPercent * (viewportSize - ScrollThumb.AbsoluteSize.Y)
+            ScrollThumb.Position = UDim2.new(0, 0, 0, thumbPosition)
+        else
+            ScrollBar.Visible = false
+        end
+    end
+    
+    parent:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateScrollbar)
+    parent:GetPropertyChangedSignal("CanvasSize"):Connect(UpdateScrollbar)
+    parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdateScrollbar)
+    
+    -- Make scrollbar draggable
+    local dragging = false
+    
+    ScrollThumb.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousePos = UserInputService:GetMouseLocation()
+            local relativeY = mousePos.Y - ScrollBar.AbsolutePosition.Y
+            local percent = math.clamp(relativeY / ScrollBar.AbsoluteSize.Y, 0, 1)
+            
+            local canvasSize = parent.CanvasSize.Y.Offset
+            local viewportSize = parent.AbsoluteSize.Y
+            local maxScroll = canvasSize - viewportSize
+            
+            parent.CanvasPosition = Vector2.new(0, percent * maxScroll)
+        end
+    end)
+    
+    UpdateScrollbar()
     
     return ScrollBar, ScrollThumb
 end
@@ -632,24 +689,6 @@ function Library:CreateWindow(config)
         end
     end)
     
-    -- Update custom scrollbar
-    self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-        local canvasSize = self.TabContainer.CanvasSize.Y.Offset
-        local viewportSize = self.TabContainer.AbsoluteSize.Y
-        
-        if canvasSize > viewportSize then
-            TabScrollBar.Visible = true
-            local thumbSize = (viewportSize / canvasSize) * viewportSize
-            TabScrollThumb.Size = UDim2.new(1, 0, 0, math.max(thumbSize, 20))
-            
-            local scrollPercent = self.TabContainer.CanvasPosition.Y / (canvasSize - viewportSize)
-            local thumbPosition = scrollPercent * (viewportSize - TabScrollThumb.AbsoluteSize.Y)
-            TabScrollThumb.Position = UDim2.new(0, 0, 0, thumbPosition)
-        else
-            TabScrollBar.Visible = false
-        end
-    end)
-    
     return self
 end
 
@@ -778,32 +817,6 @@ function Window:CreateTab(name, icon)
     Tab.Button.MouseLeave:Connect(function()
         if self.CurrentTab ~= Tab then
             Tween(Tab.Button, {BackgroundColor3 = self.Theme.Secondary}, 0.2)
-        end
-    end)
-    
-    -- Update content scrollbar
-    Tab.Content:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-        local canvasSize = Tab.Content.CanvasSize.Y.Offset
-        local viewportSize = Tab.Content.AbsoluteSize.Y
-        
-        if canvasSize > viewportSize then
-            ContentScrollBar.Visible = true
-            local thumbSize = (viewportSize / canvasSize) * viewportSize
-            ContentScrollThumb.Size = UDim2.new(1, 0, 0, math.max(thumbSize, 20))
-            
-            local scrollPercent = Tab.Content.CanvasPosition.Y / (canvasSize - viewportSize)
-            local thumbPosition = scrollPercent * (viewportSize - ContentScrollThumb.AbsoluteSize.Y)
-            ContentScrollThumb.Position = UDim2.new(0, 0, 0, thumbPosition)
-        else
-            ContentScrollBar.Visible = false
-        end
-    end)
-    
-    -- Auto-resize content
-    Tab.Content:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-        local layout = Tab.Content:FindFirstChildOfClass("UIListLayout")
-        if layout then
-            Tab.Content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 24)
         end
     end)
     
@@ -1132,15 +1145,12 @@ function Window:CreateTab(name, icon)
                 Size = UDim2.new(0, 50, 0, 20),
                 Font = Enum.Font.GothamBold,
                 Text = tostring(Slider.Value),
-                TextColor3 = Section.Window.AccentColor,
+                TextColor3 = Section.Window.Theme.Text,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Right
             })
             
-            -- Register for accent updates
-            RegisterAccentElement(Slider.ValueLabel, function(color)
-                Slider.ValueLabel.TextColor3 = color
-            end)
+            RegisterThemeElement(Slider.ValueLabel, {TextColor3 = "Text"})
             
             Slider.SliderBG = Create("Frame", {
                 Name = "SliderBG",
@@ -1160,7 +1170,7 @@ function Window:CreateTab(name, icon)
             Slider.Fill = Create("Frame", {
                 Name = "Fill",
                 Parent = Slider.SliderBG,
-                BackgroundColor3 = Section.Window.AccentColor,
+                BackgroundColor3 = Section.Window.Theme.SliderFill,
                 Size = UDim2.new(0, 0, 1, 0)
             })
             
@@ -1169,10 +1179,7 @@ function Window:CreateTab(name, icon)
                 Parent = Slider.Fill
             })
             
-            -- Register for accent updates
-            RegisterAccentElement(Slider.Fill, function(color)
-                Slider.Fill.BackgroundColor3 = color
-            end)
+            RegisterThemeElement(Slider.Fill, {BackgroundColor3 = "SliderFill"})
             
             Slider.Knob = Create("Frame", {
                 Name = "Knob",
@@ -1413,15 +1420,13 @@ function Window:CreateTab(name, icon)
                 
                 OptionButton.MouseEnter:Connect(function()
                     Tween(OptionButton, {
-                        BackgroundColor3 = Section.Window.AccentColor,
-                        BackgroundTransparency = 0.7
+                        BackgroundColor3 = Section.Window.Theme.Quaternary
                     }, 0.1)
                 end)
                 
                 OptionButton.MouseLeave:Connect(function()
                     Tween(OptionButton, {
-                        BackgroundColor3 = Section.Window.Theme.Secondary,
-                        BackgroundTransparency = 0
+                        BackgroundColor3 = Section.Window.Theme.Secondary
                     }, 0.1)
                 end)
             end
@@ -1448,32 +1453,6 @@ function Window:CreateTab(name, icon)
             
             Dropdown.Button.MouseButton1Click:Connect(function()
                 Dropdown:Toggle()
-            end)
-            
-            -- Update scrollbar
-            Dropdown.OptionContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-                local canvasSize = Dropdown.OptionContainer.CanvasSize.Y.Offset
-                local viewportSize = Dropdown.OptionContainer.AbsoluteSize.Y
-                
-                if canvasSize > viewportSize then
-                    DropdownScrollBar.Visible = true
-                    local thumbSize = (viewportSize / canvasSize) * viewportSize
-                    DropdownScrollThumb.Size = UDim2.new(1, 0, 0, math.max(thumbSize, 20))
-                    
-                    local scrollPercent = Dropdown.OptionContainer.CanvasPosition.Y / (canvasSize - viewportSize)
-                    local thumbPosition = scrollPercent * (viewportSize - DropdownScrollThumb.AbsoluteSize.Y)
-                    DropdownScrollThumb.Position = UDim2.new(0, 0, 0, thumbPosition)
-                else
-                    DropdownScrollBar.Visible = false
-                end
-            end)
-            
-            -- Auto-resize canvas
-            Dropdown.OptionContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-                local layout = Dropdown.OptionContainer:FindFirstChildOfClass("UIListLayout")
-                if layout then
-                    Dropdown.OptionContainer.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
-                end
             end)
             
             -- Search functionality
@@ -1622,12 +1601,13 @@ function Window:CreateTab(name, icon)
             
             RegisterThemeElement(ColorPicker.Label, {TextColor3 = "Text"})
             
+            -- Color display aligned with button center
             ColorPicker.Display = Create("Frame", {
                 Name = "Display",
                 Parent = ColorPicker.Button,
                 BackgroundColor3 = ColorPicker.Color,
                 BorderSizePixel = 0,
-                Position = UDim2.new(1, -40, 0.5, -12),
+                Position = UDim2.new(1, -40, 0.5, 0),
                 Size = UDim2.new(0, 24, 0, 24),
                 AnchorPoint = Vector2.new(0, 0.5)
             })
@@ -1643,13 +1623,13 @@ function Window:CreateTab(name, icon)
                 Thickness = 2
             })
             
-            -- Color Picker Panel (perfectly square and centered)
+            -- Color Picker Panel
             ColorPicker.PickerFrame = Create("Frame", {
                 Name = "Picker",
                 Parent = Section.Window.ScreenGui,
                 BackgroundColor3 = Section.Window.Theme.Secondary,
                 BorderSizePixel = 0,
-                Size = UDim2.new(0, 280, 0, 320), -- Perfect size
+                Size = UDim2.new(0, 280, 0, 320),
                 Visible = false,
                 ZIndex = 100
             })
@@ -1723,7 +1703,7 @@ function Window:CreateTab(name, icon)
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                 BorderSizePixel = 0,
                 Position = UDim2.new(0.5, 0, 0, 40),
-                Size = UDim2.new(0, 180, 0, 180), -- Perfect square
+                Size = UDim2.new(0, 180, 0, 180),
                 Image = "rbxassetid://6020299385",
                 AnchorPoint = Vector2.new(0.5, 0)
             })
@@ -1733,7 +1713,7 @@ function Window:CreateTab(name, icon)
                 Parent = ColorPicker.Wheel
             })
             
-            -- Wheel Cursor
+            -- Wheel Cursor (fixed position)
             ColorPicker.WheelCursor = Create("Frame", {
                 Name = "Cursor",
                 Parent = ColorPicker.Wheel,
@@ -1903,7 +1883,7 @@ function Window:CreateTab(name, icon)
                 ColorPicker.WheelCursor.Position = UDim2.new(0.5, x, 0.5, y)
             end
             
-            -- Wheel interaction
+            -- Wheel interaction (fixed cursor alignment)
             local wheelDragging = false
             
             ColorPicker.Wheel.InputBegan:Connect(function(input)
@@ -1922,7 +1902,7 @@ function Window:CreateTab(name, icon)
                 if wheelDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
                     local mousePos = UserInputService:GetMouseLocation()
                     local wheelCenter = ColorPicker.Wheel.AbsolutePosition + ColorPicker.Wheel.AbsoluteSize / 2
-                    local delta = mousePos - wheelCenter
+                    local delta = Vector2.new(mousePos.X - wheelCenter.X, mousePos.Y - wheelCenter.Y - 36) -- Fixed Y offset
                     
                     local angle = math.atan2(delta.Y, delta.X)
                     local distance = math.min((delta.X^2 + delta.Y^2)^0.5, ColorPicker.Wheel.AbsoluteSize.X / 2)
@@ -2218,7 +2198,8 @@ function Window:SetTheme(themeName)
             end
         end
         
-        -- Update accent-specific elements
+        -- Update accent color to match theme
+        self.AccentColor = theme.Accent
         self:UpdateAccentElements()
     end
 end
@@ -2228,27 +2209,6 @@ function Window:UpdateAccentElements()
     for _, element in ipairs(AccentElements) do
         if element.element and element.element.Parent and element.callback then
             element.callback(self.AccentColor)
-        end
-    end
-end
-
-function Window:ToggleRainbow(enabled)
-    if enabled then
-        self.RainbowConnection = RunService.Heartbeat:Connect(function()
-            local hue = tick() % 5 / 5
-            local color = Color3.fromHSV(hue, 1, 1)
-            self.AccentColor = color
-            
-            -- Update all accent elements
-            self:UpdateAccentElements()
-        end)
-    else
-        if self.RainbowConnection then
-            self.RainbowConnection:Disconnect()
-            self.RainbowConnection = nil
-            -- Reset to theme accent
-            self.AccentColor = self.Theme.Accent
-            self:UpdateAccentElements()
         end
     end
 end
@@ -2272,9 +2232,6 @@ function Window:Reset()
 end
 
 function Window:Destroy()
-    if self.RainbowConnection then
-        self.RainbowConnection:Disconnect()
-    end
     self.ScreenGui:Destroy()
 end
 
