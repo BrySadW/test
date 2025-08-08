@@ -1,4 +1,4 @@
--- Ultimate Premium UI Library v2.0 - Enhanced Edition
+-- Ultimate Premium UI Library v2.1 - Fully Fixed Edition
 local Library = {}
 Library.__index = Library
 
@@ -13,9 +13,10 @@ local CoreGui = game:GetService("CoreGui")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 
--- Enhanced Themes with better color consistency
+-- Enhanced Themes with complete color sets
 local Themes = {
     Dark = {
+        Name = "Dark",
         Background = Color3.fromRGB(22, 22, 26),
         Secondary = Color3.fromRGB(28, 28, 33),
         Tertiary = Color3.fromRGB(35, 35, 42),
@@ -33,6 +34,7 @@ local Themes = {
         Note = Color3.fromRGB(150, 130, 255)
     },
     Light = {
+        Name = "Light",
         Background = Color3.fromRGB(252, 252, 253),
         Secondary = Color3.fromRGB(245, 245, 248),
         Tertiary = Color3.fromRGB(238, 238, 242),
@@ -50,6 +52,7 @@ local Themes = {
         Note = Color3.fromRGB(120, 140, 255)
     },
     Midnight = {
+        Name = "Midnight",
         Background = Color3.fromRGB(10, 10, 18),
         Secondary = Color3.fromRGB(15, 15, 25),
         Tertiary = Color3.fromRGB(22, 22, 35),
@@ -67,6 +70,7 @@ local Themes = {
         Note = Color3.fromRGB(120, 120, 255)
     },
     Rose = {
+        Name = "Rose",
         Background = Color3.fromRGB(28, 18, 23),
         Secondary = Color3.fromRGB(38, 23, 28),
         Tertiary = Color3.fromRGB(48, 28, 33),
@@ -84,6 +88,9 @@ local Themes = {
         Note = Color3.fromRGB(255, 130, 180)
     }
 }
+
+-- Store all UI elements that need theme updates
+local ThemeElements = {}
 
 -- Utility Functions
 local function Create(class, properties)
@@ -139,6 +146,11 @@ local function AddDraggability(frame, handle)
     end)
 end
 
+-- Register element for theme updates
+local function RegisterThemeElement(element, properties)
+    table.insert(ThemeElements, {element = element, properties = properties})
+end
+
 -- Custom ScrollBar
 local function CreateScrollBar(parent, theme)
     local ScrollBar = Create("Frame", {
@@ -170,6 +182,9 @@ local function CreateScrollBar(parent, theme)
         Parent = ScrollThumb
     })
     
+    RegisterThemeElement(ScrollBar, {BackgroundColor3 = "ScrollBar"})
+    RegisterThemeElement(ScrollThumb, {BackgroundColor3 = "Accent"})
+    
     return ScrollBar, ScrollThumb
 end
 
@@ -200,10 +215,12 @@ end
 function Library:Notify(config)
     CreateNotificationHolder()
     
+    local currentTheme = self.Theme or Themes.Dark
+    
     local Notification = Create("Frame", {
         Parent = NotificationHolder,
-        BackgroundColor3 = self.Theme and self.Theme.Secondary or Themes.Dark.Secondary,
-        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundColor3 = currentTheme.Secondary,
+        Size = UDim2.new(1, 0, 0, 80),
         Position = UDim2.new(1, 100, 0, 0),
         ClipsDescendants = true
     })
@@ -226,7 +243,7 @@ function Library:Notify(config)
     -- Accent bar
     local AccentBar = Create("Frame", {
         Parent = Notification,
-        BackgroundColor3 = config.Color or (self.Theme and self.Theme.Accent or Themes.Dark.Accent),
+        BackgroundColor3 = config.Color or currentTheme.Accent,
         Size = UDim2.new(0, 4, 1, 0)
     })
     
@@ -237,7 +254,7 @@ function Library:Notify(config)
         Size = UDim2.new(1, -20, 0, 20),
         Font = Enum.Font.GothamBold,
         Text = config.Title or "Notification",
-        TextColor3 = self.Theme and self.Theme.Text or Themes.Dark.Text,
+        TextColor3 = currentTheme.Text,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left
     })
@@ -246,73 +263,42 @@ function Library:Notify(config)
         Parent = Notification,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 15, 0, 30),
-        Size = UDim2.new(1, -20, 0, 30),
+        Size = UDim2.new(1, -20, 0, 25),
         Font = Enum.Font.Gotham,
         Text = config.Text or "",
-        TextColor3 = self.Theme and self.Theme.TextDark or Themes.Dark.TextDark,
+        TextColor3 = currentTheme.TextDark,
         TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextWrapped = true
     })
     
+    -- Progress bar
+    local ProgressBar = Create("Frame", {
+        Parent = Notification,
+        BackgroundColor3 = currentTheme.Border,
+        Position = UDim2.new(0, 0, 1, -4),
+        Size = UDim2.new(1, 0, 0, 4)
+    })
+    
+    local ProgressFill = Create("Frame", {
+        Parent = ProgressBar,
+        BackgroundColor3 = config.Color or currentTheme.Accent,
+        Size = UDim2.new(1, 0, 1, 0)
+    })
+    
     -- Animate in
     Tween(Notification, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Quart)
     
-    -- Auto remove
+    -- Progress animation
     local duration = config.Duration or 3
+    Tween(ProgressFill, {Size = UDim2.new(0, 0, 1, 0)}, duration, Enum.EasingStyle.Linear)
+    
     wait(duration)
     
     -- Animate out
     Tween(Notification, {Position = UDim2.new(1, 100, 0, 0)}, 0.5, Enum.EasingStyle.Quart)
     wait(0.5)
     Notification:Destroy()
-end
-
--- Snowflake Effect
-local function CreateSnowflakeEffect(parent)
-    local SnowflakeContainer = Create("Frame", {
-        Name = "SnowflakeEffect",
-        Parent = parent,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        ZIndex = -1
-    })
-    
-    local function CreateSnowflake()
-        local Snowflake = Create("TextLabel", {
-            Parent = SnowflakeContainer,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(math.random(), 0, 0, -20),
-            Size = UDim2.new(0, 20, 0, 20),
-            Font = Enum.Font.Gotham,
-            Text = "❄",
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextTransparency = 0.7,
-            TextScaled = true,
-            ZIndex = -1
-        })
-        
-        local duration = math.random(10, 20)
-        local sway = math.random(-50, 50)
-        
-        Tween(Snowflake, {
-            Position = UDim2.new(Snowflake.Position.X.Scale, sway, 1, 20),
-            TextTransparency = 1,
-            Rotation = math.random(-180, 180)
-        }, duration, Enum.EasingStyle.Linear)
-        
-        wait(duration)
-        Snowflake:Destroy()
-    end
-    
-    spawn(function()
-        while SnowflakeContainer.Parent do
-            CreateSnowflake()
-            wait(math.random(1, 3) / 10)
-        end
-    end)
-    
-    return SnowflakeContainer
 end
 
 -- Window Class
@@ -330,9 +316,11 @@ function Library:CreateWindow(config)
     self.CurrentTab = nil
     self.Minimized = false
     self.Settings = {
-        BackgroundBlur = config.BackgroundBlur ~= false,
-        SnowflakeEffect = config.SnowflakeEffect or false
+        BackgroundBlur = config.BackgroundBlur ~= false
     }
+    
+    -- Clear theme elements for new window
+    ThemeElements = {}
     
     -- Create GUI
     self.ScreenGui = Create("ScreenGui", {
@@ -370,10 +358,7 @@ function Library:CreateWindow(config)
         Parent = self.MainFrame
     })
     
-    -- Optional Snowflake Effect
-    if self.Settings.SnowflakeEffect then
-        self.SnowflakeEffect = CreateSnowflakeEffect(self.MainFrame)
-    end
+    RegisterThemeElement(self.MainFrame, {BackgroundColor3 = "Background"})
     
     -- Shadow
     local Shadow = Create("ImageLabel", {
@@ -412,6 +397,8 @@ function Library:CreateWindow(config)
         Size = UDim2.new(1, 0, 0.5, 0)
     })
     
+    RegisterThemeElement(self.TitleBar, {BackgroundColor3 = "Secondary"})
+    
     -- Title
     self.TitleLabel = Create("TextLabel", {
         Name = "Title",
@@ -426,13 +413,16 @@ function Library:CreateWindow(config)
         TextXAlignment = Enum.TextXAlignment.Left
     })
     
-    -- Mac Style Control Buttons
+    RegisterThemeElement(self.TitleLabel, {TextColor3 = "Text"})
+    
+    -- Mac Style Control Buttons Container (perfectly centered)
     local Controls = Create("Frame", {
         Name = "Controls",
         Parent = self.TitleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(1, -80, 0.5, -8),
-        Size = UDim2.new(0, 70, 0, 16)
+        Position = UDim2.new(1, -76, 0.5, 0),
+        Size = UDim2.new(0, 68, 0, 16),
+        AnchorPoint = Vector2.new(0, 0.5)
     })
     
     -- Close Button (Red)
@@ -484,13 +474,13 @@ function Library:CreateWindow(config)
     })
     
     -- Mac button hover effects
-    local function AddMacButtonEffect(button, hoverColor)
+    local function AddMacButtonEffect(button)
         button.MouseEnter:Connect(function()
-            Tween(button, {Size = UDim2.new(0, 18, 0, 18), Position = button.Position - UDim2.new(0, 1, 0, 1)}, 0.1)
+            Tween(button, {Size = UDim2.new(0, 18, 0, 18)}, 0.1)
         end)
         
         button.MouseLeave:Connect(function()
-            Tween(button, {Size = UDim2.new(0, 16, 0, 16), Position = button.Position}, 0.1)
+            Tween(button, {Size = UDim2.new(0, 16, 0, 16)}, 0.1)
         end)
         
         button.MouseButton1Down:Connect(function()
@@ -550,6 +540,8 @@ function Library:CreateWindow(config)
         ScrollBarThickness = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0)
     })
+    
+    RegisterThemeElement(self.TabContainer, {BackgroundColor3 = "Tertiary"})
     
     -- Custom scrollbar for tab container
     local TabScrollBar, TabScrollThumb = CreateScrollBar(self.TabContainer, self.Theme)
@@ -629,6 +621,8 @@ function Window:CreateTab(name, icon)
         Parent = Tab.Button
     })
     
+    RegisterThemeElement(Tab.Button, {BackgroundColor3 = "Secondary"})
+    
     -- Tab content
     local TabContent = Create("Frame", {
         Name = "TabContent",
@@ -650,6 +644,8 @@ function Window:CreateTab(name, icon)
             TextColor3 = self.Theme.TextDark,
             TextSize = 18
         })
+        
+        RegisterThemeElement(Tab.Icon, {TextColor3 = "TextDark"})
     end
     
     -- Tab label
@@ -666,6 +662,8 @@ function Window:CreateTab(name, icon)
         TextXAlignment = Enum.TextXAlignment.Left
     })
     
+    RegisterThemeElement(Tab.Label, {TextColor3 = "TextDark"})
+    
     -- Selection indicator with rounded edges
     Tab.Indicator = Create("Frame", {
         Name = "Indicator",
@@ -680,6 +678,8 @@ function Window:CreateTab(name, icon)
         CornerRadius = UDim.new(0.5, 0),
         Parent = Tab.Indicator
     })
+    
+    Tab.IndicatorElement = Tab.Indicator -- Store for theme updates
     
     -- Tab Content with custom scrollbar
     Tab.Content = Create("ScrollingFrame", {
@@ -715,7 +715,7 @@ function Window:CreateTab(name, icon)
         self:SelectTab(Tab)
     end)
     
-    -- Hover effects
+    -- Hover effects with proper theme color
     Tab.Button.MouseEnter:Connect(function()
         if self.CurrentTab ~= Tab then
             Tween(Tab.Button, {BackgroundColor3 = self.Theme.Quaternary}, 0.2)
@@ -774,6 +774,8 @@ function Window:CreateTab(name, icon)
             Parent = Section.Container
         })
         
+        RegisterThemeElement(Section.Container, {BackgroundColor3 = "Secondary"})
+        
         Section.Header = Create("Frame", {
             Name = "Header",
             Parent = Section.Container,
@@ -806,6 +808,8 @@ function Window:CreateTab(name, icon)
             Rotation = 90
         })
         
+        RegisterThemeElement(NoteLine, {BackgroundColor3 = "Note"})
+        
         Section.Title = Create("TextLabel", {
             Name = "Title",
             Parent = Section.Header,
@@ -818,6 +822,8 @@ function Window:CreateTab(name, icon)
             TextSize = 16,
             TextXAlignment = Enum.TextXAlignment.Left
         })
+        
+        RegisterThemeElement(Section.Title, {TextColor3 = "Text"})
         
         Section.Content = Create("Frame", {
             Name = "Content",
@@ -860,6 +866,8 @@ function Window:CreateTab(name, icon)
                 CornerRadius = UDim.new(0, 8),
                 Parent = Button
             })
+            
+            Button.AccentElement = Button -- Store for accent updates
             
             Button.MouseButton1Click:Connect(function()
                 if config.Callback then
@@ -925,6 +933,8 @@ function Window:CreateTab(name, icon)
                 Parent = Toggle.Background
             })
             
+            RegisterThemeElement(Toggle.Background, {BackgroundColor3 = "Quaternary"})
+            
             Toggle.Label = Create("TextLabel", {
                 Name = "Label",
                 Parent = Toggle.Container,
@@ -938,6 +948,8 @@ function Window:CreateTab(name, icon)
                 TextXAlignment = Enum.TextXAlignment.Left
             })
             
+            RegisterThemeElement(Toggle.Label, {TextColor3 = "Text"})
+            
             Toggle.Switch = Create("Frame", {
                 Name = "Switch",
                 Parent = Toggle.Container,
@@ -950,6 +962,9 @@ function Window:CreateTab(name, icon)
                 CornerRadius = UDim.new(1, 0),
                 Parent = Toggle.Switch
             })
+            
+            RegisterThemeElement(Toggle.Switch, {BackgroundColor3 = "Border"})
+            Toggle.SwitchAccent = Toggle.Switch -- Store for accent updates
             
             Toggle.Knob = Create("Frame", {
                 Name = "Knob",
@@ -1002,6 +1017,7 @@ function Window:CreateTab(name, icon)
             end)
             
             UpdateToggle(true)
+            Toggle.UpdateToggle = UpdateToggle
             
             return Toggle
         end
@@ -1029,6 +1045,8 @@ function Window:CreateTab(name, icon)
                 Parent = Slider.Background
             })
             
+            RegisterThemeElement(Slider.Background, {BackgroundColor3 = "Quaternary"})
+            
             Slider.Label = Create("TextLabel", {
                 Name = "Label",
                 Parent = Slider.Container,
@@ -1041,6 +1059,8 @@ function Window:CreateTab(name, icon)
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
+            
+            RegisterThemeElement(Slider.Label, {TextColor3 = "Text"})
             
             Slider.ValueLabel = Create("TextLabel", {
                 Name = "Value",
@@ -1055,6 +1075,8 @@ function Window:CreateTab(name, icon)
                 TextXAlignment = Enum.TextXAlignment.Right
             })
             
+            Slider.ValueAccent = Slider.ValueLabel -- Store for accent updates
+            
             Slider.SliderBG = Create("Frame", {
                 Name = "SliderBG",
                 Parent = Slider.Container,
@@ -1068,6 +1090,8 @@ function Window:CreateTab(name, icon)
                 Parent = Slider.SliderBG
             })
             
+            RegisterThemeElement(Slider.SliderBG, {BackgroundColor3 = "Border"})
+            
             Slider.Fill = Create("Frame", {
                 Name = "Fill",
                 Parent = Slider.SliderBG,
@@ -1079,6 +1103,8 @@ function Window:CreateTab(name, icon)
                 CornerRadius = UDim.new(1, 0),
                 Parent = Slider.Fill
             })
+            
+            Slider.FillAccent = Slider.Fill -- Store for accent updates
             
             Slider.Knob = Create("Frame", {
                 Name = "Knob",
@@ -1180,6 +1206,8 @@ function Window:CreateTab(name, icon)
                 Parent = Dropdown.Button
             })
             
+            RegisterThemeElement(Dropdown.Button, {BackgroundColor3 = "Quaternary"})
+            
             Dropdown.Label = Create("TextLabel", {
                 Name = "Label",
                 Parent = Dropdown.Button,
@@ -1194,6 +1222,8 @@ function Window:CreateTab(name, icon)
                 TextTruncate = Enum.TextTruncate.AtEnd
             })
             
+            RegisterThemeElement(Dropdown.Label, {TextColor3 = "Text"})
+            
             Dropdown.Arrow = Create("TextLabel", {
                 Name = "Arrow",
                 Parent = Dropdown.Button,
@@ -1205,6 +1235,8 @@ function Window:CreateTab(name, icon)
                 TextColor3 = Section.Window.Theme.TextDark,
                 TextSize = 14
             })
+            
+            RegisterThemeElement(Dropdown.Arrow, {TextColor3 = "TextDark"})
             
             Dropdown.OptionContainer = Create("ScrollingFrame", {
                 Name = "Options",
@@ -1223,6 +1255,8 @@ function Window:CreateTab(name, icon)
                 CornerRadius = UDim.new(0, 8),
                 Parent = Dropdown.OptionContainer
             })
+            
+            RegisterThemeElement(Dropdown.OptionContainer, {BackgroundColor3 = "Tertiary"})
             
             -- Custom scrollbar for dropdown
             local DropdownScrollBar, DropdownScrollThumb = CreateScrollBar(Dropdown.OptionContainer, Section.Window.Theme)
@@ -1267,6 +1301,12 @@ function Window:CreateTab(name, icon)
                     Parent = Dropdown.SearchBox,
                     PaddingLeft = UDim.new(0, 10)
                 })
+                
+                RegisterThemeElement(Dropdown.SearchBox, {
+                    BackgroundColor3 = "Secondary",
+                    TextColor3 = "Text",
+                    PlaceholderColor3 = "TextDark"
+                })
             end
             
             for _, option in ipairs(config.Options) do
@@ -1286,6 +1326,11 @@ function Window:CreateTab(name, icon)
                 Create("UICorner", {
                     CornerRadius = UDim.new(0, 6),
                     Parent = OptionButton
+                })
+                
+                RegisterThemeElement(OptionButton, {
+                    BackgroundColor3 = "Secondary",
+                    TextColor3 = "Text"
                 })
                 
                 OptionButton.MouseButton1Click:Connect(function()
@@ -1378,6 +1423,86 @@ function Window:CreateTab(name, icon)
             return Dropdown
         end
         
+        function Section:CreateInput(config)
+            local Input = {}
+            
+            Input.Container = Create("Frame", {
+                Name = config.Name,
+                Parent = Section.Content,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 38)
+            })
+            
+            Input.Background = Create("Frame", {
+                Name = "Background",
+                Parent = Input.Container,
+                BackgroundColor3 = Section.Window.Theme.Quaternary,
+                Size = UDim2.new(1, 0, 1, 0)
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 8),
+                Parent = Input.Background
+            })
+            
+            RegisterThemeElement(Input.Background, {BackgroundColor3 = "Quaternary"})
+            
+            Input.TextBox = Create("TextBox", {
+                Name = "Input",
+                Parent = Input.Container,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 15, 0, 0),
+                Size = UDim2.new(1, -30, 1, 0),
+                Font = Enum.Font.GothamMedium,
+                PlaceholderText = config.PlaceholderText or config.Name,
+                PlaceholderColor3 = Section.Window.Theme.TextDark,
+                Text = config.Default or "",
+                TextColor3 = Section.Window.Theme.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ClearTextOnFocus = config.ClearOnFocus ~= false
+            })
+            
+            RegisterThemeElement(Input.TextBox, {
+                TextColor3 = "Text",
+                PlaceholderColor3 = "TextDark"
+            })
+            
+            Input.TextBox.FocusLost:Connect(function(enterPressed)
+                if config.Callback then
+                    config.Callback(Input.TextBox.Text, enterPressed)
+                end
+            end)
+            
+            Input.TextBox.Focused:Connect(function()
+                Tween(Input.Background, {BackgroundColor3 = Section.Window.Theme.Tertiary}, 0.2)
+            end)
+            
+            Input.TextBox.FocusLost:Connect(function()
+                Tween(Input.Background, {BackgroundColor3 = Section.Window.Theme.Quaternary}, 0.2)
+            end)
+            
+            return Input
+        end
+        
+        function Section:CreateLabel(text)
+            local Label = Create("TextLabel", {
+                Name = "Label",
+                Parent = Section.Content,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 20),
+                Font = Enum.Font.Gotham,
+                Text = text,
+                TextColor3 = Section.Window.Theme.TextDark,
+                TextSize = 13,
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+            
+            RegisterThemeElement(Label, {TextColor3 = "TextDark"})
+            
+            return Label
+        end
+        
         function Section:CreateColorPicker(config)
             local ColorPicker = {}
             ColorPicker.Color = config.Default or Color3.fromRGB(255, 255, 255)
@@ -1412,6 +1537,8 @@ function Window:CreateTab(name, icon)
                 Parent = ColorPicker.Button
             })
             
+            RegisterThemeElement(ColorPicker.Button, {BackgroundColor3 = "Quaternary"})
+            
             ColorPicker.Label = Create("TextLabel", {
                 Name = "Label",
                 Parent = ColorPicker.Button,
@@ -1424,6 +1551,8 @@ function Window:CreateTab(name, icon)
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
+            
+            RegisterThemeElement(ColorPicker.Label, {TextColor3 = "Text"})
             
             ColorPicker.Display = Create("Frame", {
                 Name = "Display",
@@ -1446,13 +1575,13 @@ function Window:CreateTab(name, icon)
                 Thickness = 2
             })
             
-            -- Color Picker Panel
+            -- Color Picker Panel (perfectly square and centered)
             ColorPicker.PickerFrame = Create("Frame", {
                 Name = "Picker",
                 Parent = Section.Window.ScreenGui,
                 BackgroundColor3 = Section.Window.Theme.Secondary,
                 BorderSizePixel = 0,
-                Size = UDim2.new(0, 250, 0, 280),
+                Size = UDim2.new(0, 280, 0, 320), -- Perfect size
                 Visible = false,
                 ZIndex = 100
             })
@@ -1461,6 +1590,8 @@ function Window:CreateTab(name, icon)
                 CornerRadius = UDim.new(0, 10),
                 Parent = ColorPicker.PickerFrame
             })
+            
+            RegisterThemeElement(ColorPicker.PickerFrame, {BackgroundColor3 = "Secondary"})
             
             -- Shadow for picker
             local PickerShadow = Create("ImageLabel", {
@@ -1477,14 +1608,54 @@ function Window:CreateTab(name, icon)
                 ZIndex = 99
             })
             
-            -- Color Wheel
+            -- Title Bar for dragging
+            local PickerTitle = Create("Frame", {
+                Name = "TitleBar",
+                Parent = ColorPicker.PickerFrame,
+                BackgroundColor3 = Section.Window.Theme.Tertiary,
+                Size = UDim2.new(1, 0, 0, 30)
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0, 10),
+                Parent = PickerTitle
+            })
+            
+            Create("Frame", {
+                Parent = PickerTitle,
+                BackgroundColor3 = Section.Window.Theme.Tertiary,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 0.5, 0),
+                Size = UDim2.new(1, 0, 0.5, 0)
+            })
+            
+            RegisterThemeElement(PickerTitle, {BackgroundColor3 = "Tertiary"})
+            
+            local PickerTitleText = Create("TextLabel", {
+                Parent = PickerTitle,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 0),
+                Size = UDim2.new(1, -20, 1, 0),
+                Font = Enum.Font.GothamBold,
+                Text = "Color Picker",
+                TextColor3 = Section.Window.Theme.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+            
+            RegisterThemeElement(PickerTitleText, {TextColor3 = "Text"})
+            
+            -- Add draggability to color picker
+            AddDraggability(ColorPicker.PickerFrame, PickerTitle)
+            
+            -- Color Wheel (perfect square)
             ColorPicker.Wheel = Create("ImageLabel", {
                 Name = "ColorWheel",
                 Parent = ColorPicker.PickerFrame,
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                 BorderSizePixel = 0,
-                Position = UDim2.new(0.5, -80, 0, 10),
-                Size = UDim2.new(0, 160, 0, 160),
+                Position = UDim2.new(0.5, 0, 0, 40),
+                Size = UDim2.new(0, 180, 0, 180), -- Perfect square
                 Image = "rbxassetid://6020299385",
                 AnchorPoint = Vector2.new(0.5, 0)
             })
@@ -1519,7 +1690,7 @@ function Window:CreateTab(name, icon)
             local BrightnessLabel = Create("TextLabel", {
                 Parent = ColorPicker.PickerFrame,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 180),
+                Position = UDim2.new(0, 10, 0, 230),
                 Size = UDim2.new(0, 60, 0, 20),
                 Font = Enum.Font.Gotham,
                 Text = "Brightness",
@@ -1528,11 +1699,13 @@ function Window:CreateTab(name, icon)
                 TextXAlignment = Enum.TextXAlignment.Left
             })
             
+            RegisterThemeElement(BrightnessLabel, {TextColor3 = "Text"})
+            
             ColorPicker.BrightnessSlider = Create("Frame", {
                 Name = "BrightnessSlider",
                 Parent = ColorPicker.PickerFrame,
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = UDim2.new(0, 10, 0, 205),
+                Position = UDim2.new(0, 10, 0, 255),
                 Size = UDim2.new(1, -20, 0, 10)
             })
             
@@ -1573,7 +1746,7 @@ function Window:CreateTab(name, icon)
             local AlphaLabel = Create("TextLabel", {
                 Parent = ColorPicker.PickerFrame,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 225),
+                Position = UDim2.new(0, 10, 0, 275),
                 Size = UDim2.new(0, 60, 0, 20),
                 Font = Enum.Font.Gotham,
                 Text = "Alpha",
@@ -1582,11 +1755,13 @@ function Window:CreateTab(name, icon)
                 TextXAlignment = Enum.TextXAlignment.Left
             })
             
+            RegisterThemeElement(AlphaLabel, {TextColor3 = "Text"})
+            
             ColorPicker.AlphaSlider = Create("Frame", {
                 Name = "AlphaSlider",
                 Parent = ColorPicker.PickerFrame,
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = UDim2.new(0, 10, 0, 250),
+                Position = UDim2.new(0, 10, 0, 300),
                 Size = UDim2.new(1, -20, 0, 10)
             })
             
@@ -1759,14 +1934,16 @@ function Window:CreateTab(name, icon)
                         local screenSize = workspace.CurrentCamera.ViewportSize
                         
                         local x = buttonPos.X + buttonSize.X + 10
-                        local y = buttonPos.Y
+                        local y = buttonPos.Y - (pickerSize.Y - buttonSize.Y) / 2
                         
                         -- Check if picker would go off-screen
                         if x + pickerSize.X > screenSize.X then
                             x = buttonPos.X - pickerSize.X - 10
                         end
                         
-                        if y + pickerSize.Y > screenSize.Y then
+                        if y < 0 then
+                            y = 10
+                        elseif y + pickerSize.Y > screenSize.Y then
                             y = screenSize.Y - pickerSize.Y - 10
                         end
                         
@@ -1789,21 +1966,26 @@ function Window:CreateTab(name, icon)
                 end
             end)
             
-            -- Close picker when clicking outside
-            UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 and ColorPicker.Open then
-                    local mousePos = UserInputService:GetMouseLocation()
-                    local pickerPos = ColorPicker.PickerFrame.AbsolutePosition
-                    local pickerSize = ColorPicker.PickerFrame.AbsoluteSize
-                    
-                    if mousePos.X < pickerPos.X or mousePos.X > pickerPos.X + pickerSize.X or
-                       mousePos.Y < pickerPos.Y or mousePos.Y > pickerPos.Y + pickerSize.Y then
-                        ColorPicker.Open = false
-                        Tween(ColorPicker.PickerFrame, {BackgroundTransparency = 1}, 0.2)
-                        wait(0.2)
-                        ColorPicker.PickerFrame.Visible = false
-                    end
-                end
+            -- Close button
+            local CloseButton = Create("TextButton", {
+                Parent = PickerTitle,
+                BackgroundColor3 = Color3.fromRGB(255, 95, 86),
+                Position = UDim2.new(1, -25, 0.5, -7),
+                Size = UDim2.new(0, 14, 0, 14),
+                Text = "",
+                AutoButtonColor = false
+            })
+            
+            Create("UICorner", {
+                CornerRadius = UDim.new(0.5, 0),
+                Parent = CloseButton
+            })
+            
+            CloseButton.MouseButton1Click:Connect(function()
+                ColorPicker.Open = false
+                Tween(ColorPicker.PickerFrame, {BackgroundTransparency = 1}, 0.2)
+                wait(0.2)
+                ColorPicker.PickerFrame.Visible = false
             end)
             
             UpdateColor()
@@ -1835,6 +2017,8 @@ function Window:CreateTab(name, icon)
                 Parent = Keybind.Background
             })
             
+            RegisterThemeElement(Keybind.Background, {BackgroundColor3 = "Quaternary"})
+            
             Keybind.Label = Create("TextLabel", {
                 Name = "Label",
                 Parent = Keybind.Container,
@@ -1847,6 +2031,8 @@ function Window:CreateTab(name, icon)
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
+            
+            RegisterThemeElement(Keybind.Label, {TextColor3 = "Text"})
             
             Keybind.Button = Create("TextButton", {
                 Name = "Keybind",
@@ -1865,6 +2051,11 @@ function Window:CreateTab(name, icon)
             Create("UICorner", {
                 CornerRadius = UDim.new(0, 6),
                 Parent = Keybind.Button
+            })
+            
+            RegisterThemeElement(Keybind.Button, {
+                BackgroundColor3 = "Border",
+                TextColor3 = "Text"
             })
             
             Keybind.Button.MouseButton1Click:Connect(function()
@@ -1935,25 +2126,52 @@ function Window:SetTheme(themeName)
     if theme then
         self.Theme = theme
         
-        -- Update all UI elements with new theme colors
-        Tween(self.MainFrame, {BackgroundColor3 = theme.Background}, 0.3)
-        Tween(self.TitleBar, {BackgroundColor3 = theme.Secondary}, 0.3)
-        Tween(self.TabContainer, {BackgroundColor3 = theme.Tertiary}, 0.3)
-        Tween(self.TitleLabel, {TextColor3 = theme.Text}, 0.3)
+        -- Update all registered theme elements
+        for _, element in ipairs(ThemeElements) do
+            if element.element and element.element.Parent then
+                for property, themeKey in pairs(element.properties) do
+                    if theme[themeKey] then
+                        Tween(element.element, {[property] = theme[themeKey]}, 0.3)
+                    end
+                end
+            end
+        end
         
-        -- Update all tabs and sections
-        for _, tab in ipairs(self.Tabs) do
-            Tween(tab.Button, {BackgroundColor3 = self.CurrentTab == tab and theme.Quaternary or theme.Secondary}, 0.3)
-            Tween(tab.Label, {TextColor3 = self.CurrentTab == tab and self.AccentColor or theme.TextDark}, 0.3)
-            
-            for _, section in ipairs(tab.Sections) do
-                Tween(section.Container, {BackgroundColor3 = theme.Secondary}, 0.3)
-                Tween(section.Title, {TextColor3 = theme.Text}, 0.3)
+        -- Update accent-specific elements
+        self:UpdateAccentElements()
+    end
+end
+
+function Window:UpdateAccentElements()
+    -- Update all elements that use accent color
+    for _, tab in ipairs(self.Tabs) do
+        if self.CurrentTab == tab then
+            tab.Indicator.BackgroundColor3 = self.AccentColor
+            tab.Label.TextColor3 = self.AccentColor
+            if tab.Icon then
+                tab.Icon.TextColor3 = self.AccentColor
+            end
+        end
+        
+        for _, section in ipairs(tab.Sections) do
+            -- Update buttons
+            for _, child in pairs(section.Content:GetChildren()) do
+                if child.Name and child.AccentElement then
+                    child.BackgroundColor3 = self.AccentColor
+                end
                 
-                -- Update note lines
-                local noteLine = section.Header:FindFirstChild("NoteLine")
-                if noteLine then
-                    Tween(noteLine, {BackgroundColor3 = theme.Note}, 0.3)
+                -- Update toggles
+                if child.Name and child:FindFirstChild("Switch") and child.SwitchAccent then
+                    local toggle = child
+                    if toggle.Value then
+                        toggle.Switch.BackgroundColor3 = self.AccentColor
+                    end
+                end
+                
+                -- Update sliders
+                if child.Name and child.FillAccent then
+                    child.Fill.BackgroundColor3 = self.AccentColor
+                    child.ValueLabel.TextColor3 = self.AccentColor
                 end
             end
         end
@@ -1967,43 +2185,23 @@ function Window:ToggleRainbow(enabled)
             local color = Color3.fromHSV(hue, 1, 1)
             self.AccentColor = color
             
-            -- Update accent colored elements
-            if self.CurrentTab then
-                self.CurrentTab.Indicator.BackgroundColor3 = color
-                self.CurrentTab.Label.TextColor3 = color
-                if self.CurrentTab.Icon then
-                    self.CurrentTab.Icon.TextColor3 = color
-                end
-            end
+            -- Update all accent elements
+            self:UpdateAccentElements()
         end)
     else
         if self.RainbowConnection then
             self.RainbowConnection:Disconnect()
             self.RainbowConnection = nil
+            -- Reset to theme accent
+            self.AccentColor = self.Theme.Accent
+            self:UpdateAccentElements()
         end
     end
 end
 
 function Window:SetAccentColor(color)
     self.AccentColor = color
-    
-    -- Update current tab
-    if self.CurrentTab then
-        self.CurrentTab.Indicator.BackgroundColor3 = color
-        self.CurrentTab.Label.TextColor3 = color
-        if self.CurrentTab.Icon then
-            self.CurrentTab.Icon.TextColor3 = color
-        end
-    end
-end
-
-function Window:ToggleSnowflakes(enabled)
-    if enabled and not self.SnowflakeEffect then
-        self.SnowflakeEffect = CreateSnowflakeEffect(self.MainFrame)
-    elseif not enabled and self.SnowflakeEffect then
-        self.SnowflakeEffect:Destroy()
-        self.SnowflakeEffect = nil
-    end
+    self:UpdateAccentElements()
 end
 
 function Window:ToggleBlur(enabled)
@@ -2035,67 +2233,6 @@ function Window:Init()
         Size = UDim2.new(0, 700, 0, 500),
         Position = UDim2.new(0.5, -350, 0.5, -250)
     }, 0.5, Enum.EasingStyle.Back)
-end
-
--- Static notification method
-function Library:Notify(config)
-    CreateNotificationHolder()
-    
-    local Notification = Create("Frame", {
-        Parent = NotificationHolder,
-        BackgroundColor3 = Themes.Dark.Secondary,
-        Size = UDim2.new(1, 0, 0, 70),
-        Position = UDim2.new(1, 100, 0, 0),
-        ClipsDescendants = true
-    })
-    
-    Create("UICorner", {
-        CornerRadius = UDim.new(0, 10),
-        Parent = Notification
-    })
-    
-    local AccentBar = Create("Frame", {
-        Parent = Notification,
-        BackgroundColor3 = config.Color or Themes.Dark.Accent,
-        Size = UDim2.new(0, 4, 1, 0)
-    })
-    
-    local Title = Create("TextLabel", {
-        Parent = Notification,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 10),
-        Size = UDim2.new(1, -20, 0, 20),
-        Font = Enum.Font.GothamBold,
-        Text = config.Title or "Notification",
-        TextColor3 = Themes.Dark.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-    
-    local Message = Create("TextLabel", {
-        Parent = Notification,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 30),
-        Size = UDim2.new(1, -20, 0, 30),
-        Font = Enum.Font.Gotham,
-        Text = config.Text or "",
-        TextColor3 = Themes.Dark.TextDark,
-        TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextWrapped = true
-    })
-    
-    -- Animate in
-    Tween(Notification, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Quart)
-    
-    -- Auto remove
-    local duration = config.Duration or 3
-    wait(duration)
-    
-    -- Animate out
-    Tween(Notification, {Position = UDim2.new(1, 100, 0, 0)}, 0.5, Enum.EasingStyle.Quart)
-    wait(0.5)
-    Notification:Destroy()
 end
 
 return Library
